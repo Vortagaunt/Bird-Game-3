@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bird Game 3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            overflow: hidden;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+            image-rendering: pixelated;
+        }
+
+        #hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border: 2px solid #666;
+            display: none;
+        }
+
+        #victoryScreen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffd700;
+            font-size: 64px;
+            text-shadow: 4px 4px 0 #000;
+            display: none;
+            text-align: center;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 60px;
+            border: 4px solid #ffd700;
+        }
+
+        #victoryScreen .subtitle {
+            font-size: 24px;
+            color: #fff;
+            margin-top: 20px;
+        }
+
+        #victoryScreen .nextButton {
+            font-size: 28px;
+            color: #00ff00;
+            margin-top: 40px;
+            padding: 15px 30px;
+            border: 3px solid #00ff00;
+            display: inline-block;
+            cursor: pointer;
+            animation: blink 1s infinite;
+        }
+
+        #gameOver {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0000;
+            font-size: 48px;
+            text-shadow: 4px 4px 0 #000;
+            display: none;
+            text-align: center;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border: 4px solid #ff0000;
+        }
+
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 14px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border: 2px solid #666;
+            display: none;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 0, 0, 0.1) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #mainMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        #mainMenu h1 {
+            color: #00ff00;
+            font-size: 72px;
+            text-shadow: 4px 4px 0 #000;
+            margin-bottom: 20px;
+            letter-spacing: 8px;
+        }
+
+        #mainMenu .subtitle {
+            color: #ffff00;
+            font-size: 24px;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 60px;
+        }
+
+        #mainMenu .startButton {
+            color: #fff;
+            font-size: 32px;
+            text-shadow: 3px 3px 0 #000;
+            padding: 20px 40px;
+            border: 4px solid #fff;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.5; }
+        }
+
+        #mainMenu .controls {
+            position: absolute;
+            bottom: 60px;
+            color: #aaa;
+            font-size: 16px;
+            text-shadow: 2px 2px 0 #000;
+            text-align: center;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainMenu">
+        <h1>BIRD GAME 3</h1>
+        <div class="subtitle">PS1 EDITION</div>
+        <div class="startButton">PRESS ENTER TO START</div>
+        <div class="controls">
+            WASD/ARROWS: Move | SPACE: Up | SHIFT: Down<br>
+            Hit birds to kill them | Don't let birds hit you
+        </div>
+    </div>
+
+    <div id="hud">
+        <div>LEVEL: <span id="levelCount">1</span></div>
+        <div>BIRDS ALIVE: <span id="birdCount">10</span></div>
+        <div>STATUS: <span id="status">FLYING</span></div>
+    </div>
+    
+    <div id="victoryScreen">
+        <div>VICTORY ROYALE!</div>
+        <div class="subtitle">ALL BIRDS ELIMINATED</div>
+        <div class="nextButton" onclick="nextLevel()">PRESS N FOR NEXT LEVEL</div>
+    </div>
+    
+    <div id="gameOver">
+        <div>GAME OVER</div>
+        <div style="font-size: 20px; margin-top: 20px;">PRESS R TO RESTART</div>
+    </div>
+
+    <div id="instructions">
+        WASD/ARROWS: Move | SPACE: Up | SHIFT: Down | Avoid other birds!
+    </div>
+
+    <div class="scanline"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // PS1 Style Bird Game
+        let scene, camera, renderer;
+        let player;
+        let birds = [];
+        let keys = {};
+        let gameActive = false;
+        let gameStarted = false;
+        let currentLevel = 1;
+
+        // PS1 rendering settings
+        const RENDER_SCALE = 0.6; // Lower resolution for PS1 effect
+        const VERTEX_JITTER = 0.02; // Vertex wobble amount
+
+        // Game settings - scale with level
+        function getBirdCount() {
+            return 8 + (currentLevel * 3); // Start with 8, add 3 per level
+        }
+        
+        function getBirdSpeed() {
+            return 0.06 + (currentLevel * 0.02); // Increase speed per level
+        }
+        
+        const MOVE_SPEED = 0.15;
+        const COLLISION_DISTANCE = 2.5;
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87ceeb, 10, 80);
+            scene.background = new THREE.Color(0x87ceeb);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 8, 15);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer with PS1 settings
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: false, // No antialiasing for PS1 look
+                canvas: document.createElement('canvas')
+            });
+            
+            const width = Math.floor(window.innerWidth * RENDER_SCALE);
+            const height = Math.floor(window.innerHeight * RENDER_SCALE);
+            
+            renderer.setSize(width, height, false);
+            renderer.shadowMap.enabled = false; // Disable shadows for performance
+            
+            // Create a canvas for displaying
+            const displayCanvas = document.createElement('canvas');
+            displayCanvas.id = 'gameCanvas';
+            document.body.appendChild(displayCanvas);
+            const ctx = displayCanvas.getContext('2d');
+            displayCanvas.width = window.innerWidth;
+            displayCanvas.height = window.innerHeight;
+            
+            // Render loop will copy with pixelation
+            renderer.domElement.style.imageRendering = 'pixelated';
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffcc, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            scene.add(directionalLight);
+
+            // Ground plane
+            const groundGeometry = new THREE.PlaneGeometry(100, 100, 10, 10);
+            const groundMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x4a7c3c,
+                flatShading: true
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -2;
+            scene.add(ground);
+
+            // Add vertex jitter to ground
+            addVertexJitter(groundGeometry);
+
+            // Create player bird
+            player = createBird(0xff0000, 0, 0, 0, true);
+            player.isPlayer = true;
+            scene.add(player);
+
+            // Create AI birds with varied colors
+            const birdCount = getBirdCount();
+            for (let i = 0; i < birdCount; i++) {
+                const x = (Math.random() - 0.5) * 40;
+                const y = Math.random() * 10 - 2;
+                const z = (Math.random() - 0.5) * 40;
+                
+                // More varied colors
+                const colors = [
+                    0x0000ff, 0x00ffff, 0x00ff00, 0xffff00, 
+                    0xff00ff, 0xff8800, 0x8800ff, 0x00ff88
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const bird = createBird(color, x, y, z, false);
+                const speed = getBirdSpeed();
+                bird.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * speed,
+                    (Math.random() - 0.5) * speed * 0.5,
+                    (Math.random() - 0.5) * speed
+                );
+                birds.push(bird);
+                scene.add(bird);
+            }
+
+            // Input handling
+            window.addEventListener('keydown', (e) => {
+                keys[e.key.toLowerCase()] = true;
+                
+                if (e.key === 'Enter' && !gameStarted) {
+                    startGame();
+                }
+                
+                if (e.key.toLowerCase() === 'n' && document.getElementById('victoryScreen').style.display === 'block') {
+                    nextLevel();
+                }
+                
+                if (e.key.toLowerCase() === 'r' && !gameActive && gameStarted) {
+                    restartGame();
+                }
+            });
+            window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Start animation
+            animate(displayCanvas, ctx);
+        }
+
+        function createBird(color, x, y, z, isPlayer = false) {
+            const bird = new THREE.Group();
+
+            // Randomize bird proportions (or use standard for player)
+            const bodyScaleX = isPlayer ? 1 : 0.7 + Math.random() * 0.6;
+            const bodyScaleY = isPlayer ? 0.8 : 0.6 + Math.random() * 0.4;
+            const bodyScaleZ = isPlayer ? 1.5 : 1.2 + Math.random() * 0.8;
+            const headSize = isPlayer ? 0.6 : 0.4 + Math.random() * 0.4;
+            const wingLength = isPlayer ? 2 : 1.5 + Math.random() * 1;
+            const wingThickness = isPlayer ? 0.3 : 0.2 + Math.random() * 0.3;
+            const neckLength = isPlayer ? 0 : Math.random() * 0.5;
+            
+            // Body segments for variation
+            const bodySegments = isPlayer ? 6 : Math.floor(4 + Math.random() * 4);
+            
+            // Body (elongated sphere with random proportions)
+            const bodyGeometry = new THREE.SphereGeometry(1, bodySegments, 5);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ 
+                color: color,
+                flatShading: true
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.scale.set(bodyScaleX, bodyScaleY, bodyScaleZ);
+            addVertexJitter(bodyGeometry);
+            bird.add(body);
+
+            // Head
+            const headGeometry = new THREE.SphereGeometry(headSize, 5, 4);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.set(0, bodyScaleY * 0.3 + neckLength, bodyScaleZ * 0.8 + headSize * 0.5);
+            addVertexJitter(headGeometry);
+            bird.add(head);
+
+            // Beak (randomized size and shape)
+            const beakSize = isPlayer ? 0.15 : 0.1 + Math.random() * 0.15;
+            const beakLength = isPlayer ? 0.5 : 0.3 + Math.random() * 0.4;
+            const beakGeometry = new THREE.ConeGeometry(beakSize, beakLength, 4);
+            const beakMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xffa500,
+                flatShading: true
+            });
+            const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+            beak.position.set(0, head.position.y, head.position.z + headSize * 0.8);
+            beak.rotation.x = Math.PI / 2;
+            addVertexJitter(beakGeometry);
+            bird.add(beak);
+
+            // Wings (randomized)
+            const wingGeometry = new THREE.BoxGeometry(wingLength, wingThickness, bodyScaleZ * 0.6);
+            const leftWing = new THREE.Mesh(wingGeometry, bodyMaterial);
+            leftWing.position.set(-bodyScaleX * 0.8, 0, 0);
+            leftWing.rotation.z = 0.3;
+            addVertexJitter(wingGeometry);
+            bird.add(leftWing);
+
+            const rightWingGeometry = new THREE.BoxGeometry(wingLength, wingThickness, bodyScaleZ * 0.6);
+            const rightWing = new THREE.Mesh(rightWingGeometry, bodyMaterial);
+            rightWing.position.set(bodyScaleX * 0.8, 0, 0);
+            rightWing.rotation.z = -0.3;
+            addVertexJitter(rightWingGeometry);
+            bird.add(rightWing);
+
+            // Tail (random length)
+            if (!isPlayer || Math.random() > 0.3) {
+                const tailLength = isPlayer ? 0.8 : 0.5 + Math.random() * 0.8;
+                const tailGeometry = new THREE.ConeGeometry(0.3, tailLength, 4);
+                const tail = new THREE.Mesh(tailGeometry, bodyMaterial);
+                tail.position.set(0, 0, -bodyScaleZ * 0.8);
+                tail.rotation.x = -Math.PI / 2;
+                addVertexJitter(tailGeometry);
+                bird.add(tail);
+            }
+
+            // Some birds get extra features
+            if (!isPlayer && Math.random() > 0.5) {
+                // Crest/mohawk
+                const crestGeometry = new THREE.ConeGeometry(0.2, 0.5, 4);
+                const crest = new THREE.Mesh(crestGeometry, bodyMaterial);
+                crest.position.set(0, head.position.y + headSize * 0.6, head.position.z - headSize * 0.2);
+                addVertexJitter(crestGeometry);
+                bird.add(crest);
+            }
+
+            bird.leftWing = leftWing;
+            bird.rightWing = rightWing;
+            bird.bodyScaleY = bodyScaleY;
+
+            bird.position.set(x, y, z);
+            bird.alive = true;
+
+            return bird;
+        }
+
+        function addVertexJitter(geometry) {
+            const positions = geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i++) {
+                positions[i] += (Math.random() - 0.5) * VERTEX_JITTER;
+            }
+            geometry.attributes.position.needsUpdate = true;
+        }
+
+        function startGame() {
+            gameStarted = true;
+            gameActive = true;
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('levelCount').textContent = currentLevel;
+            document.getElementById('birdCount').textContent = getBirdCount();
+        }
+
+        function updatePlayer() {
+            if (!gameActive || !player.alive) return;
+
+            const moveVector = new THREE.Vector3();
+
+            // WASD or Arrow keys
+            if (keys['w'] || keys['arrowup']) moveVector.z -= MOVE_SPEED;
+            if (keys['s'] || keys['arrowdown']) moveVector.z += MOVE_SPEED;
+            if (keys['a'] || keys['arrowleft']) moveVector.x -= MOVE_SPEED;
+            if (keys['d'] || keys['arrowright']) moveVector.x += MOVE_SPEED;
+            if (keys[' ']) moveVector.y += MOVE_SPEED; // Space for up
+            if (keys['shift']) moveVector.y -= MOVE_SPEED; // Shift for down
+
+            player.position.add(moveVector);
+
+            // Keep player in bounds
+            player.position.x = Math.max(-40, Math.min(40, player.position.x));
+            player.position.y = Math.max(-1, Math.min(15, player.position.y));
+            player.position.z = Math.max(-40, Math.min(40, player.position.z));
+
+            // Rotate player based on movement
+            if (moveVector.length() > 0) {
+                const angle = Math.atan2(moveVector.x, moveVector.z);
+                player.rotation.y = angle;
+            }
+
+            // Wing flap animation
+            const flapSpeed = 10;
+            const flapAmount = 0.5;
+            player.leftWing.rotation.z = 0.3 + Math.sin(Date.now() * 0.01 * flapSpeed) * flapAmount;
+            player.rightWing.rotation.z = -0.3 - Math.sin(Date.now() * 0.01 * flapSpeed) * flapAmount;
+
+            // Camera follows player
+            camera.position.x = player.position.x;
+            camera.position.y = player.position.y + 8;
+            camera.position.z = player.position.z + 15;
+            camera.lookAt(player.position);
+        }
+
+        function updateBirds() {
+            if (!gameActive) return;
+
+            birds.forEach((bird, index) => {
+                if (!bird.alive) return;
+
+                // Move bird
+                bird.position.add(bird.velocity);
+
+                // Bounce off boundaries
+                if (Math.abs(bird.position.x) > 40) {
+                    bird.velocity.x *= -1;
+                    bird.position.x = Math.sign(bird.position.x) * 40;
+                }
+                if (bird.position.y < -1 || bird.position.y > 15) {
+                    bird.velocity.y *= -1;
+                    bird.position.y = Math.max(-1, Math.min(15, bird.position.y));
+                }
+                if (Math.abs(bird.position.z) > 40) {
+                    bird.velocity.z *= -1;
+                    bird.position.z = Math.sign(bird.position.z) * 40;
+                }
+
+                // Random direction changes and occasional player targeting
+                if (Math.random() < 0.01) {
+                    bird.velocity.x += (Math.random() - 0.5) * 0.02;
+                    bird.velocity.z += (Math.random() - 0.5) * 0.02;
+                    bird.velocity.y += (Math.random() - 0.5) * 0.01;
+                }
+                
+                // Occasionally chase the player (increases with level)
+                const chaseChance = 0.002 * currentLevel;
+                if (Math.random() < chaseChance && player.alive) {
+                    const toPlayer = new THREE.Vector3()
+                        .subVectors(player.position, bird.position)
+                        .normalize()
+                        .multiplyScalar(getBirdSpeed() * 0.3);
+                    bird.velocity.lerp(toPlayer, 0.1);
+                }
+
+                // Face direction of movement
+                if (bird.velocity.length() > 0) {
+                    const angle = Math.atan2(bird.velocity.x, bird.velocity.z);
+                    bird.rotation.y = angle;
+                }
+
+                // Wing flap
+                const flapSpeed = 8;
+                const flapAmount = 0.4;
+                bird.leftWing.rotation.z = 0.3 + Math.sin(Date.now() * 0.01 * flapSpeed + index) * flapAmount;
+                bird.rightWing.rotation.z = -0.3 - Math.sin(Date.now() * 0.01 * flapSpeed + index) * flapAmount;
+
+                // Check collision with player
+                if (player.alive) {
+                    const distance = bird.position.distanceTo(player.position);
+                    if (distance < COLLISION_DISTANCE) {
+                        // Determine who hit whom based on velocity direction
+                        const toBird = new THREE.Vector3().subVectors(bird.position, player.position).normalize();
+                        const playerVelocity = new THREE.Vector3();
+                        
+                        // Calculate player's current velocity from input
+                        if (keys['w'] || keys['arrowup']) playerVelocity.z -= MOVE_SPEED;
+                        if (keys['s'] || keys['arrowdown']) playerVelocity.z += MOVE_SPEED;
+                        if (keys['a'] || keys['arrowleft']) playerVelocity.x -= MOVE_SPEED;
+                        if (keys['d'] || keys['arrowright']) playerVelocity.x += MOVE_SPEED;
+                        if (keys[' ']) playerVelocity.y += MOVE_SPEED;
+                        if (keys['shift']) playerVelocity.y -= MOVE_SPEED;
+                        
+                        // Check if player is moving toward bird
+                        const playerMovingToBird = playerVelocity.length() > 0 && playerVelocity.normalize().dot(toBird) > 0.3;
+                        
+                        // Check if bird is moving toward player
+                        const toPlayer = toBird.clone().negate();
+                        const birdMovingToPlayer = bird.velocity.clone().normalize().dot(toPlayer) > 0.3;
+                        
+                        if (playerMovingToBird && !birdMovingToPlayer) {
+                            // Player hit the bird - bird dies
+                            killBird(bird);
+                        } else if (birdMovingToPlayer) {
+                            // Bird hit the player - player dies
+                            killBird(bird);
+                            killBird(player);
+                            gameOver();
+                        } else {
+                            // Ambiguous collision - both die
+                            killBird(bird);
+                            killBird(player);
+                            gameOver();
+                        }
+                    }
+                }
+
+                // Check collision with other birds
+                birds.forEach((otherBird, otherIndex) => {
+                    if (otherIndex <= index || !otherBird.alive) return;
+                    const distance = bird.position.distanceTo(otherBird.position);
+                    if (distance < COLLISION_DISTANCE) {
+                        killBird(bird);
+                        killBird(otherBird);
+                    }
+                });
+            });
+
+            // Update bird count
+            const aliveBirds = birds.filter(b => b.alive).length;
+            document.getElementById('birdCount').textContent = aliveBirds;
+            
+            // Check for victory
+            if (aliveBirds === 0 && player.alive && gameActive) {
+                victory();
+            }
+        }
+
+        function killBird(bird) {
+            if (!bird.alive) return;
+            bird.alive = false;
+            
+            // Death animation - fall and fade
+            const deathTween = () => {
+                if (bird.position.y > -5) {
+                    bird.position.y -= 0.1;
+                    bird.rotation.x += 0.1;
+                    bird.rotation.z += 0.05;
+                    requestAnimationFrame(deathTween);
+                } else {
+                    scene.remove(bird);
+                }
+            };
+            deathTween();
+        }
+
+        function gameOver() {
+            gameActive = false;
+            document.getElementById('status').textContent = 'DEAD';
+            document.getElementById('status').style.color = '#ff0000';
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function victory() {
+            gameActive = false;
+            document.getElementById('status').textContent = 'VICTORIOUS';
+            document.getElementById('status').style.color = '#ffd700';
+            document.getElementById('victoryScreen').style.display = 'block';
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            document.getElementById('victoryScreen').style.display = 'none';
+            
+            // Remove all old birds
+            birds.forEach(bird => scene.remove(bird));
+            birds = [];
+            
+            // Reset player position
+            player.position.set(0, 0, 0);
+            player.alive = true;
+            
+            // Create new birds for next level
+            const birdCount = getBirdCount();
+            for (let i = 0; i < birdCount; i++) {
+                const x = (Math.random() - 0.5) * 40;
+                const y = Math.random() * 10 - 2;
+                const z = (Math.random() - 0.5) * 40;
+                
+                const colors = [
+                    0x0000ff, 0x00ffff, 0x00ff00, 0xffff00, 
+                    0xff00ff, 0xff8800, 0x8800ff, 0x00ff88
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const bird = createBird(color, x, y, z, false);
+                const speed = getBirdSpeed();
+                bird.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * speed,
+                    (Math.random() - 0.5) * speed * 0.5,
+                    (Math.random() - 0.5) * speed
+                );
+                birds.push(bird);
+                scene.add(bird);
+            }
+            
+            // Update HUD
+            gameActive = true;
+            document.getElementById('levelCount').textContent = currentLevel;
+            document.getElementById('birdCount').textContent = birdCount;
+            document.getElementById('status').textContent = 'FLYING';
+            document.getElementById('status').style.color = '#fff';
+        }
+
+        function restartGame() {
+            // Remove all birds
+            birds.forEach(bird => scene.remove(bird));
+            scene.remove(player);
+            
+            birds = [];
+            gameActive = true;
+            gameStarted = true;
+            currentLevel = 1;
+            
+            // Recreate player
+            player = createBird(0xff0000, 0, 0, 0, true);
+            player.isPlayer = true;
+            scene.add(player);
+            
+            // Recreate AI birds
+            const birdCount = getBirdCount();
+            for (let i = 0; i < birdCount; i++) {
+                const x = (Math.random() - 0.5) * 40;
+                const y = Math.random() * 10 - 2;
+                const z = (Math.random() - 0.5) * 40;
+                
+                const colors = [
+                    0x0000ff, 0x00ffff, 0x00ff00, 0xffff00, 
+                    0xff00ff, 0xff8800, 0x8800ff, 0x00ff88
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const bird = createBird(color, x, y, z, false);
+                const speed = getBirdSpeed();
+                bird.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * speed,
+                    (Math.random() - 0.5) * speed * 0.5,
+                    (Math.random() - 0.5) * speed
+                );
+                birds.push(bird);
+                scene.add(bird);
+            }
+            
+            document.getElementById('status').textContent = 'FLYING';
+            document.getElementById('status').style.color = '#fff';
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('levelCount').textContent = currentLevel;
+            document.getElementById('birdCount').textContent = birdCount;
+        }
+
+        function animate(displayCanvas, ctx) {
+            requestAnimationFrame(() => animate(displayCanvas, ctx));
+
+            updatePlayer();
+            updateBirds();
+
+            // Render at low resolution
+            renderer.render(scene, camera);
+            
+            // Copy to display canvas with pixelation
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(
+                renderer.domElement,
+                0, 0, renderer.domElement.width, renderer.domElement.height,
+                0, 0, displayCanvas.width, displayCanvas.height
+            );
+        }
+
+        function onWindowResize() {
+            const width = Math.floor(window.innerWidth * RENDER_SCALE);
+            const height = Math.floor(window.innerHeight * RENDER_SCALE);
+            
+            renderer.setSize(width, height, false);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            
+            const displayCanvas = document.getElementById('gameCanvas');
+            displayCanvas.width = window.innerWidth;
+            displayCanvas.height = window.innerHeight;
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
