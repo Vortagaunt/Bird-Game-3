@@ -315,6 +315,7 @@
 
     <div id="hud">
         <div>LEVEL: <span id="levelCount">1</span></div>
+        <div>BIOME: <span id="biomeDisplay">GRASSLAND</span></div>
         <div>BIRDS ALIVE: <span id="birdCount">10</span></div>
         <div>STATUS: <span id="status">FLYING</span></div>
     </div>
@@ -348,6 +349,25 @@
         let currentLevel = 1;
         let playerColor = 0xff0000;
         let playerShape = 'balanced';
+        let ground;
+
+        // Biome definitions
+        const biomes = [
+            { name: 'GRASSLAND', ground: 0x4a7c3c, sky: 0x87ceeb, fog: 0x87ceeb },
+            { name: 'DESERT', ground: 0xc2b280, sky: 0xffd89b, fog: 0xffd89b },
+            { name: 'SNOW', ground: 0xe0f0ff, sky: 0xb0c4de, fog: 0xb0c4de },
+            { name: 'LAVA', ground: 0x8b0000, sky: 0xff4500, fog: 0xff4500 },
+            { name: 'OCEAN', ground: 0x1e90ff, sky: 0x4682b4, fog: 0x4682b4 },
+            { name: 'ALIEN', ground: 0x9b4dca, sky: 0x6b2c8a, fog: 0x6b2c8a },
+            { name: 'AUTUMN', ground: 0xa0522d, sky: 0xffa07a, fog: 0xffa07a },
+            { name: 'TOXIC', ground: 0x7fff00, sky: 0x9acd32, fog: 0x9acd32 },
+            { name: 'MIDNIGHT', ground: 0x191970, sky: 0x000033, fog: 0x000033 },
+            { name: 'CANDY', ground: 0xff69b4, sky: 0xffb6c1, fog: 0xffb6c1 }
+        ];
+
+        function getCurrentBiome() {
+            return biomes[(currentLevel - 1) % biomes.length];
+        }
 
         // PS1 rendering settings
         const RENDER_SCALE = 0.6; // Lower resolution for PS1 effect
@@ -368,8 +388,9 @@
         function init() {
             // Scene
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x87ceeb, 10, 80);
-            scene.background = new THREE.Color(0x87ceeb);
+            const biome = getCurrentBiome();
+            scene.fog = new THREE.Fog(biome.fog, 10, 80);
+            scene.background = new THREE.Color(biome.sky);
 
             // Camera
             camera = new THREE.PerspectiveCamera(
@@ -415,10 +436,10 @@
             // Ground plane
             const groundGeometry = new THREE.PlaneGeometry(100, 100, 10, 10);
             const groundMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x4a7c3c,
+                color: biome.ground,
                 flatShading: true
             });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
             ground.position.y = -2;
             scene.add(ground);
@@ -661,6 +682,20 @@
             geometry.attributes.position.needsUpdate = true;
         }
 
+        function updateBiome() {
+            const biome = getCurrentBiome();
+            
+            // Update ground color
+            ground.material.color.setHex(biome.ground);
+            
+            // Update sky and fog
+            scene.background.setHex(biome.sky);
+            scene.fog.color.setHex(biome.fog);
+            
+            // Update HUD
+            document.getElementById('biomeDisplay').textContent = biome.name;
+        }
+
         function startGame() {
             gameStarted = true;
             gameActive = true;
@@ -670,6 +705,7 @@
             document.getElementById('instructions').style.display = 'block';
             document.getElementById('levelCount').textContent = currentLevel;
             document.getElementById('birdCount').textContent = getBirdCount();
+            document.getElementById('biomeDisplay').textContent = getCurrentBiome().name;
         }
 
         function showCustomization() {
@@ -888,6 +924,9 @@
             currentLevel++;
             document.getElementById('victoryScreen').style.display = 'none';
             
+            // Update biome for new level
+            updateBiome();
+            
             // Remove all old birds (but not the player)
             birds.forEach(bird => scene.remove(bird));
             birds = [];
@@ -939,6 +978,9 @@
             gameActive = true;
             gameStarted = true;
             currentLevel = 1;
+            
+            // Reset biome to level 1
+            updateBiome();
             
             // Recreate player
             player = createBird(playerColor, 0, 0, 0, true);
