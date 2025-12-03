@@ -173,6 +173,101 @@
             text-align: center;
             line-height: 1.8;
         }
+
+        #customizationMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        #customizationMenu h2 {
+            color: #00ff00;
+            font-size: 48px;
+            text-shadow: 3px 3px 0 #000;
+            margin-bottom: 40px;
+        }
+
+        .customization-section {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .customization-section h3 {
+            color: #ffff00;
+            font-size: 24px;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+        }
+
+        .option-grid {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .option-button {
+            padding: 15px 25px;
+            border: 3px solid #666;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 18px;
+            text-shadow: 2px 2px 0 #000;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+
+        .option-button:hover {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .option-button.selected {
+            border-color: #00ff00;
+            background: rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .color-option {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #00ff00;
+            border-width: 5px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        }
+
+        #startGameButton {
+            margin-top: 50px;
+            padding: 20px 50px;
+            border: 4px solid #00ff00;
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+            font-size: 28px;
+            text-shadow: 2px 2px 0 #000;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            animation: blink 1s infinite;
+        }
     </style>
 </head>
 <body>
@@ -184,6 +279,38 @@
             WASD/ARROWS: Move | SPACE: Up | SHIFT: Down<br>
             Hit birds to kill them | Don't let birds hit you
         </div>
+    </div>
+
+    <div id="customizationMenu">
+        <h2>CUSTOMIZE YOUR BIRD</h2>
+        
+        <div class="customization-section">
+            <h3>SELECT COLOR</h3>
+            <div class="option-grid">
+                <div class="color-option selected" style="background: #ff0000;" data-color="0xff0000"></div>
+                <div class="color-option" style="background: #00ff00;" data-color="0x00ff00"></div>
+                <div class="color-option" style="background: #0000ff;" data-color="0x0000ff"></div>
+                <div class="color-option" style="background: #ffff00;" data-color="0xffff00"></div>
+                <div class="color-option" style="background: #ff00ff;" data-color="0xff00ff"></div>
+                <div class="color-option" style="background: #00ffff;" data-color="0x00ffff"></div>
+                <div class="color-option" style="background: #ff8800;" data-color="0xff8800"></div>
+                <div class="color-option" style="background: #ffffff;" data-color="0xffffff"></div>
+            </div>
+        </div>
+
+        <div class="customization-section">
+            <h3>SELECT SHAPE</h3>
+            <div class="option-grid">
+                <div class="option-button selected" data-shape="balanced">BALANCED</div>
+                <div class="option-button" data-shape="chonky">CHONKY</div>
+                <div class="option-button" data-shape="speedy">SPEEDY</div>
+                <div class="option-button" data-shape="tiny">TINY</div>
+                <div class="option-button" data-shape="long">LONG NECK</div>
+                <div class="option-button" data-shape="thicc">THICC WINGS</div>
+            </div>
+        </div>
+
+        <button id="startGameButton">START GAME</button>
     </div>
 
     <div id="hud">
@@ -219,6 +346,8 @@
         let gameActive = false;
         let gameStarted = false;
         let currentLevel = 1;
+        let playerColor = 0xff0000;
+        let playerShape = 'balanced';
 
         // PS1 rendering settings
         const RENDER_SCALE = 0.6; // Lower resolution for PS1 effect
@@ -298,7 +427,7 @@
             addVertexJitter(groundGeometry);
 
             // Create player bird
-            player = createBird(0xff0000, 0, 0, 0, true);
+            player = createBird(playerColor, 0, 0, 0, true);
             player.isPlayer = true;
             scene.add(player);
 
@@ -332,7 +461,7 @@
                 keys[e.key.toLowerCase()] = true;
                 
                 if (e.key === 'Enter' && !gameStarted) {
-                    startGame();
+                    showCustomization();
                 }
                 
                 if (e.key.toLowerCase() === 'n' && document.getElementById('victoryScreen').style.display === 'block') {
@@ -345,6 +474,9 @@
             });
             window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
+            // Customization menu handlers
+            setupCustomizationHandlers();
+
             // Handle window resize
             window.addEventListener('resize', onWindowResize);
 
@@ -355,17 +487,93 @@
         function createBird(color, x, y, z, isPlayer = false) {
             const bird = new THREE.Group();
 
-            // Randomize bird proportions (or use standard for player)
-            const bodyScaleX = isPlayer ? 1 : 0.7 + Math.random() * 0.6;
-            const bodyScaleY = isPlayer ? 0.8 : 0.6 + Math.random() * 0.4;
-            const bodyScaleZ = isPlayer ? 1.5 : 1.2 + Math.random() * 0.8;
-            const headSize = isPlayer ? 0.6 : 0.4 + Math.random() * 0.4;
-            const wingLength = isPlayer ? 2 : 1.5 + Math.random() * 1;
-            const wingThickness = isPlayer ? 0.3 : 0.2 + Math.random() * 0.3;
-            const neckLength = isPlayer ? 0 : Math.random() * 0.5;
+            // Define shape presets
+            let bodyScaleX, bodyScaleY, bodyScaleZ, headSize, wingLength, wingThickness, neckLength, bodySegments;
             
-            // Body segments for variation
-            const bodySegments = isPlayer ? 6 : Math.floor(4 + Math.random() * 4);
+            if (isPlayer) {
+                // Use player's selected shape
+                switch(playerShape) {
+                    case 'balanced':
+                        bodyScaleX = 1;
+                        bodyScaleY = 0.8;
+                        bodyScaleZ = 1.5;
+                        headSize = 0.6;
+                        wingLength = 2;
+                        wingThickness = 0.3;
+                        neckLength = 0;
+                        bodySegments = 6;
+                        break;
+                    case 'chonky':
+                        bodyScaleX = 1.4;
+                        bodyScaleY = 1.2;
+                        bodyScaleZ = 1.3;
+                        headSize = 0.7;
+                        wingLength = 1.5;
+                        wingThickness = 0.5;
+                        neckLength = 0;
+                        bodySegments = 5;
+                        break;
+                    case 'speedy':
+                        bodyScaleX = 0.7;
+                        bodyScaleY = 0.6;
+                        bodyScaleZ = 2;
+                        headSize = 0.4;
+                        wingLength = 2.5;
+                        wingThickness = 0.2;
+                        neckLength = 0;
+                        bodySegments = 7;
+                        break;
+                    case 'tiny':
+                        bodyScaleX = 0.6;
+                        bodyScaleY = 0.5;
+                        bodyScaleZ = 0.8;
+                        headSize = 0.4;
+                        wingLength = 1.2;
+                        wingThickness = 0.2;
+                        neckLength = 0;
+                        bodySegments = 4;
+                        break;
+                    case 'long':
+                        bodyScaleX = 0.8;
+                        bodyScaleY = 0.7;
+                        bodyScaleZ = 1.2;
+                        headSize = 0.5;
+                        wingLength = 1.8;
+                        wingThickness = 0.3;
+                        neckLength = 0.8;
+                        bodySegments = 6;
+                        break;
+                    case 'thicc':
+                        bodyScaleX = 1;
+                        bodyScaleY = 0.9;
+                        bodyScaleZ = 1.4;
+                        headSize = 0.6;
+                        wingLength = 2.8;
+                        wingThickness = 0.6;
+                        neckLength = 0;
+                        bodySegments = 6;
+                        break;
+                    default:
+                        bodyScaleX = 1;
+                        bodyScaleY = 0.8;
+                        bodyScaleZ = 1.5;
+                        headSize = 0.6;
+                        wingLength = 2;
+                        wingThickness = 0.3;
+                        neckLength = 0;
+                        bodySegments = 6;
+                }
+            } else {
+                // Randomize for AI birds
+                bodyScaleX = 0.7 + Math.random() * 0.6;
+                bodyScaleY = 0.6 + Math.random() * 0.4;
+                bodyScaleZ = 1.2 + Math.random() * 0.8;
+                headSize = 0.4 + Math.random() * 0.4;
+                wingLength = 1.5 + Math.random() * 1;
+                wingThickness = 0.2 + Math.random() * 0.3;
+                neckLength = Math.random() * 0.5;
+                bodySegments = Math.floor(4 + Math.random() * 4);
+            }
             
             // Body (elongated sphere with random proportions)
             const bodyGeometry = new THREE.SphereGeometry(1, bodySegments, 5);
@@ -425,7 +633,7 @@
                 bird.add(tail);
             }
 
-            // Some birds get extra features
+            // Some birds get extra features (not player)
             if (!isPlayer && Math.random() > 0.5) {
                 // Crest/mohawk
                 const crestGeometry = new THREE.ConeGeometry(0.2, 0.5, 4);
@@ -457,10 +665,39 @@
             gameStarted = true;
             gameActive = true;
             document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('customizationMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
             document.getElementById('instructions').style.display = 'block';
             document.getElementById('levelCount').textContent = currentLevel;
             document.getElementById('birdCount').textContent = getBirdCount();
+        }
+
+        function showCustomization() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('customizationMenu').style.display = 'flex';
+        }
+
+        function setupCustomizationHandlers() {
+            // Color selection
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    playerColor = parseInt(this.getAttribute('data-color'));
+                });
+            });
+
+            // Shape selection
+            document.querySelectorAll('.option-button').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.option-button').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    playerShape = this.getAttribute('data-shape');
+                });
+            });
+
+            // Start game button
+            document.getElementById('startGameButton').addEventListener('click', startGame);
         }
 
         function updatePlayer() {
@@ -651,13 +888,15 @@
             currentLevel++;
             document.getElementById('victoryScreen').style.display = 'none';
             
-            // Remove all old birds
+            // Remove all old birds (but not the player)
             birds.forEach(bird => scene.remove(bird));
             birds = [];
             
-            // Reset player position
+            // Reset player position and status
             player.position.set(0, 0, 0);
             player.alive = true;
+            
+            // Player keeps their color and shape through levels
             
             // Create new birds for next level
             const birdCount = getBirdCount();
@@ -702,7 +941,7 @@
             currentLevel = 1;
             
             // Recreate player
-            player = createBird(0xff0000, 0, 0, 0, true);
+            player = createBird(playerColor, 0, 0, 0, true);
             player.isPlayer = true;
             scene.add(player);
             
