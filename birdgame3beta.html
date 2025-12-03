@@ -447,10 +447,7 @@
             // Add vertex jitter to ground
             addVertexJitter(groundGeometry);
 
-            // Create player bird
-            player = createBird(playerColor, 0, 0, 0, true);
-            player.isPlayer = true;
-            scene.add(player);
+            // Player will be created after customization in startGame()
 
             // Create AI birds with varied colors
             const birdCount = getBirdCount();
@@ -699,6 +696,14 @@
         function startGame() {
             gameStarted = true;
             gameActive = true;
+            
+            // Create player with customized settings
+            if (!player) {
+                player = createBird(playerColor, 0, 0, 0, true);
+                player.isPlayer = true;
+                scene.add(player);
+            }
+            
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('customizationMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
@@ -737,7 +742,7 @@
         }
 
         function updatePlayer() {
-            if (!gameActive || !player.alive) return;
+            if (!player || !gameActive || !player.alive) return;
 
             const moveVector = new THREE.Vector3();
 
@@ -769,10 +774,12 @@
             player.rightWing.rotation.z = -0.3 - Math.sin(Date.now() * 0.01 * flapSpeed) * flapAmount;
 
             // Camera follows player
-            camera.position.x = player.position.x;
-            camera.position.y = player.position.y + 8;
-            camera.position.z = player.position.z + 15;
-            camera.lookAt(player.position);
+            if (player) {
+                camera.position.x = player.position.x;
+                camera.position.y = player.position.y + 8;
+                camera.position.z = player.position.z + 15;
+                camera.lookAt(player.position);
+            }
         }
 
         function updateBirds() {
@@ -807,7 +814,7 @@
                 
                 // Occasionally chase the player (increases with level)
                 const chaseChance = 0.002 * currentLevel;
-                if (Math.random() < chaseChance && player.alive) {
+                if (player && Math.random() < chaseChance && player.alive) {
                     const toPlayer = new THREE.Vector3()
                         .subVectors(player.position, bird.position)
                         .normalize()
@@ -828,7 +835,7 @@
                 bird.rightWing.rotation.z = -0.3 - Math.sin(Date.now() * 0.01 * flapSpeed + index) * flapAmount;
 
                 // Check collision with player
-                if (player.alive) {
+                if (player && player.alive) {
                     const distance = bird.position.distanceTo(player.position);
                     if (distance < COLLISION_DISTANCE) {
                         // Determine who hit whom based on velocity direction
@@ -883,7 +890,7 @@
             document.getElementById('birdCount').textContent = aliveBirds;
             
             // Check for victory
-            if (aliveBirds === 0 && player.alive && gameActive) {
+            if (player && aliveBirds === 0 && player.alive && gameActive) {
                 victory();
             }
         }
@@ -931,9 +938,11 @@
             birds.forEach(bird => scene.remove(bird));
             birds = [];
             
-            // Reset player position and status
-            player.position.set(0, 0, 0);
-            player.alive = true;
+            // Reset player position and status (keep customization)
+            if (player) {
+                player.position.set(0, 0, 0);
+                player.alive = true;
+            }
             
             // Player keeps their color and shape through levels
             
